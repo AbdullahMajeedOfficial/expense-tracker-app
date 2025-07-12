@@ -68,8 +68,6 @@ export default function AddTransactionDialog() {
     },
   });
 
-  const transactionType = form.watch("type");
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
       toast({ title: "Error", description: "You must be logged in to add a transaction.", variant: "destructive" });
@@ -180,14 +178,7 @@ export default function AddTransactionDialog() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {Object.keys(categoryIcons)
-                        .filter(cat => {
-                            if (transactionType === 'income') {
-                                return ['Salary', 'Investments', 'Other'].includes(cat);
-                            }
-                            return !['Salary', 'Investments'].includes(cat);
-                        })
-                        .map(category => (
+                      {Object.keys(categoryIcons).map(category => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>
