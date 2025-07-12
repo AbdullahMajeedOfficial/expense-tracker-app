@@ -32,8 +32,9 @@ const RecentTransactions: FC<RecentTransactionsProps> = ({ transactions }) => {
     }).format(amount);
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
+  const formatDate = (date: any) => {
+    const d = date instanceof Date ? date : date.toDate();
+    return d.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
