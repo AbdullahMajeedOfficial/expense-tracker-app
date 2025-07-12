@@ -41,6 +41,12 @@ const RecentTransactions: FC<RecentTransactionsProps> = ({ transactions }) => {
     });
   };
 
+  const sortedTransactions = [...transactions].sort((a, b) => {
+    const dateA = a.date instanceof Date ? a.date.getTime() : (a.date as any).toDate().getTime();
+    const dateB = b.date instanceof Date ? b.date.getTime() : (b.date as any).toDate().getTime();
+    return dateB - dateA;
+  });
+
   return (
     <Card>
       <CardHeader>
@@ -59,7 +65,7 @@ const RecentTransactions: FC<RecentTransactionsProps> = ({ transactions }) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.slice(0, 5).map((transaction) => {
+            {sortedTransactions.slice(0, 5).map((transaction) => {
               const Icon = getCategoryIcon(transaction.category);
               return (
                 <TableRow key={transaction.id}>
