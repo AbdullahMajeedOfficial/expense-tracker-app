@@ -14,12 +14,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import AddTransactionDialog from "./add-transaction-dialog";
+import { useRouter } from "next/navigation";
 
 const Header: FC = () => {
   const { user } = useAuth();
+  const router = useRouter();
 
   const handleSignOut = async () => {
     await signOut(auth);
+    router.push('/login');
   };
 
   return (
