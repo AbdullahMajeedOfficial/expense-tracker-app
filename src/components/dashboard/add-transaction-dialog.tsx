@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "../auth/auth-provider";
-import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 
@@ -113,12 +113,17 @@ export default function AddTransactionDialog({ transaction, open, onOpenChange }
     try {
       if (isEditMode && transaction) {
         const docRef = doc(db, `users/${user.uid}/transactions`, transaction.id);
-        await updateDoc(docRef, values);
+        await updateDoc(docRef, {
+            ...values,
+            updatedAt: serverTimestamp(),
+        });
         toast({ title: "Success", description: "Transaction updated successfully." });
       } else {
         const transactionsRef = collection(db, `users/${user.uid}/transactions`);
-        await addDoc(transactionsRef, {
+        const newDocRef = doc(transactionsRef);
+        await setDoc(newDocRef, {
           ...values,
+          id: newDocRef.id,
           createdAt: serverTimestamp(),
         });
         toast({ title: "Success", description: "Transaction added successfully." });

@@ -120,7 +120,7 @@ const RecentTransactions: FC<RecentTransactionsProps> = ({ transactions }) => {
             {sortedTransactions.slice(0, 5).map((transaction) => {
               const Icon = getCategoryIcon(transaction.category);
               return (
-                <TableRow key={transaction.id}>
+                <TableRow key={transaction.date}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-muted rounded-full">
