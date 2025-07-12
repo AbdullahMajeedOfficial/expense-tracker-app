@@ -3,13 +3,18 @@
 
 import {useState} from 'react';
 import {useRouter} from 'next/navigation';
-import {signInWithEmailAndPassword, createUserWithEmailAndPassword} from 'firebase/auth';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from 'firebase/auth';
 import {auth} from '@/lib/firebase';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {useToast} from '@/hooks/use-toast';
+import {generateUserLogo} from '@/ai/flows/generate-user-logo';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -17,6 +22,7 @@ export default function LoginForm() {
   const [isLogin, setIsLogin] = useState(true);
   const router = useRouter();
   const {toast} = useToast();
+  const [isSigningUp, setIsSigningUp] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +30,23 @@ export default function LoginForm() {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        setIsSigningUp(true);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        if (user) {
+          try {
+            const {logoDataUri} = await generateUserLogo({email});
+            await updateProfile(user, {photoURL: logoDataUri});
+          } catch (aiError) {
+            console.error('AI logo generation failed, continuing without it.', aiError);
+            toast({
+              title: 'AI Feature Notice',
+              description: "Couldn't generate an AI logo, but your account is created!",
+              variant: 'default',
+            });
+          }
+        }
       }
       router.push('/');
     } catch (error: any) {
@@ -33,6 +55,8 @@ export default function LoginForm() {
         description: error.message,
         variant: 'destructive',
       });
+    } finally {
+      setIsSigningUp(false);
     }
   };
 
@@ -41,7 +65,9 @@ export default function LoginForm() {
       <CardHeader>
         <CardTitle>{isLogin ? 'Login' : 'Sign Up'}</CardTitle>
         <CardDescription>
-          {isLogin ? 'Enter your credentials to access your dashboard.' : 'Create an account to get started.'}
+          {isLogin
+            ? 'Enter your credentials to access your dashboard.'
+            : 'Create an account to get started.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -55,6 +81,7 @@ export default function LoginForm() {
               onChange={e => setEmail(e.target.value)}
               placeholder="m@example.com"
               required
+              disabled={isSigningUp}
             />
           </div>
           <div className="space-y-2">
@@ -65,15 +92,16 @@ export default function LoginForm() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
+              disabled={isSigningUp}
             />
           </div>
-          <Button type="submit" className="w-full">
-            {isLogin ? 'Login' : 'Sign Up'}
+          <Button type="submit" className="w-full" disabled={isSigningUp}>
+            {isSigningUp ? 'Creating Account & Logo...' : isLogin ? 'Login' : 'Sign Up'}
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">
           {isLogin ? "Don't have an account?" : 'Already have an account?'}
-          <Button variant="link" onClick={() => setIsLogin(!isLogin)} className="p-1">
+          <Button variant="link" onClick={() => setIsLogin(!isLogin)} className="p-1"  disabled={isSigningUp}>
             {isLogin ? 'Sign up' : 'Login'}
           </Button>
         </div>
