@@ -53,6 +53,10 @@ const formSchema = z.object({
   date: z.date({ required_error: "Please select a date." }),
 });
 
+const incomeCategories = ['Salary', 'Investments', 'Other'];
+const expenseCategories = ['Food', 'Transport', 'Utilities', 'Rent', 'Bills', 'Shopping', 'Entertainment', 'Other'];
+
+
 export default function AddTransactionDialog() {
   const [open, setOpen] = useState(false);
   const { user } = useAuth();
@@ -67,6 +71,8 @@ export default function AddTransactionDialog() {
       date: new Date(),
     },
   });
+  
+  const transactionType = form.watch("type");
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
@@ -114,7 +120,10 @@ export default function AddTransactionDialog() {
                   <FormLabel>Transaction Type</FormLabel>
                   <FormControl>
                     <RadioGroup
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        form.setValue('category', ''); // Reset category on type change
+                      }}
                       defaultValue={field.value}
                       className="flex space-x-4"
                     >
@@ -171,14 +180,14 @@ export default function AddTransactionDialog() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue="">
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {Object.keys(categoryIcons).map(category => (
+                      {(transactionType === 'income' ? incomeCategories : expenseCategories).map(category => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>
