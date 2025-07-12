@@ -56,9 +56,9 @@ const RecentTransactions: FC<RecentTransactionsProps> = ({ transactions }) => {
   const { toast } = useToast();
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-IN", {
+    return new Intl.NumberFormat("en-PK", {
       style: "currency",
-      currency: "INR",
+      currency: "PKR",
     }).format(amount);
   };
 
