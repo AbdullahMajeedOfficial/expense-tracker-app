@@ -41,7 +41,7 @@ const Header: FC = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Avatar className="cursor-pointer">
-                <AvatarImage src={user.photoURL || "https://placehold.co/40x40.png"} alt="User Avatar" data-ai-hint="user avatar"/>
+                <AvatarImage src={user.photoURL || "https://placehold.co/40x40.png"} alt="User Avatar" />
                 <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>

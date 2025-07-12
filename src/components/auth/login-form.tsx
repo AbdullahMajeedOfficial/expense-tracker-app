@@ -14,7 +14,6 @@ import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {useToast} from '@/hooks/use-toast';
-import {generateUserLogo} from '@/ai/flows/generate-user-logo';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -35,17 +34,10 @@ export default function LoginForm() {
         const user = userCredential.user;
 
         if (user) {
-          try {
-            const {logoDataUri} = await generateUserLogo({email});
-            await updateProfile(user, {photoURL: logoDataUri});
-          } catch (aiError) {
-            console.error('AI logo generation failed, continuing without it.', aiError);
-            toast({
-              title: 'AI Feature Notice',
-              description: "Couldn't generate an AI logo, but your account is created!",
-              variant: 'default',
-            });
-          }
+          const avatarUrl = `https://api.dicebear.com/8.x/identicon/svg?seed=${encodeURIComponent(
+            user.email || ''
+          )}`;
+          await updateProfile(user, {photoURL: avatarUrl});
         }
       }
       router.push('/');
@@ -96,7 +88,7 @@ export default function LoginForm() {
             />
           </div>
           <Button type="submit" className="w-full" disabled={isSigningUp}>
-            {isSigningUp ? 'Creating Account & Logo...' : isLogin ? 'Login' : 'Sign Up'}
+            {isSigningUp ? 'Creating Account...' : isLogin ? 'Login' : 'Sign Up'}
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">
