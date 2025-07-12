@@ -56,9 +56,9 @@ const RecentTransactions: FC<RecentTransactionsProps> = ({ transactions }) => {
   const { toast } = useToast();
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: "USD",
+      currency: "INR",
     }).format(amount);
   };
 
@@ -120,7 +120,7 @@ const RecentTransactions: FC<RecentTransactionsProps> = ({ transactions }) => {
             {sortedTransactions.slice(0, 5).map((transaction) => {
               const Icon = getCategoryIcon(transaction.category);
               return (
-                <TableRow key={transaction.date}>
+                <TableRow key={transaction.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-muted rounded-full">

@@ -1,4 +1,4 @@
-import { Utensils, Car, Home, Receipt, Shirt, Clapperboard, Landmark, TrendingUp, HelpCircle } from 'lucide-react';
+import { Utensils, Car, Home, Receipt, Shirt, Clapperboard, Landmark, TrendingUp, HelpCircle, IndianRupee } from 'lucide-react';
 
 export const categoryIcons = {
   'Food': Utensils,
@@ -16,3 +16,5 @@ export const categoryIcons = {
 export const getCategoryIcon = (category: string) => {
   return categoryIcons[category as keyof typeof categoryIcons] || HelpCircle;
 };
+
+export const RupeeIcon = IndianRupee;

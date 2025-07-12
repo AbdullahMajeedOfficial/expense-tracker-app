@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { getCategoryIcon } from "@/components/icons";
 import type { BudgetGoal, SpendingByCategory } from "@/lib/types";
-import { DollarSign } from "lucide-react";
+import { Target } from "lucide-react";
 
 interface BudgetGoalsProps {
   goals: BudgetGoal[];
@@ -13,11 +13,20 @@ interface BudgetGoalsProps {
 }
 
 const BudgetGoals: FC<BudgetGoalsProps> = ({ goals, spending }) => {
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="font-headline flex items-center gap-2">
-          <DollarSign className="w-6 h-6" />
+          <Target className="w-6 h-6" />
           Budget Goals
         </CardTitle>
       </CardHeader>
@@ -36,7 +45,7 @@ const BudgetGoals: FC<BudgetGoalsProps> = ({ goals, spending }) => {
                     <span className="font-medium">{goal.category}</span>
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    ${spent.toFixed(2)} / ${goal.goal.toFixed(2)}
+                    {formatCurrency(spent)} / {formatCurrency(goal.goal)}
                   </span>
                 </div>
                 <Progress value={progress} className="h-2" />
