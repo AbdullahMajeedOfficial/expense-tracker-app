@@ -1,6 +1,6 @@
 "use client";
 
-import type { FC } from "react";
+import type { FC, useState } from "react";
 import {
   Card,
   CardContent,
@@ -16,15 +16,44 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { getCategoryIcon } from "@/components/icons";
 import type { Transaction } from "@/lib/types";
+import { useAuth } from "../auth/auth-provider";
+import { doc, deleteDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useToast } from "@/hooks/use-toast";
+import AddTransactionDialog from "./add-transaction-dialog";
+
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
 }
 
 const RecentTransactions: FC<RecentTransactionsProps> = ({ transactions }) => {
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -47,7 +76,28 @@ const RecentTransactions: FC<RecentTransactionsProps> = ({ transactions }) => {
     return dateB - dateA;
   });
 
+  const handleEdit = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = async (transactionId: string) => {
+    if (!user) {
+      toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
+      return;
+    }
+    try {
+      const docRef = doc(db, `users/${user.uid}/transactions`, transactionId);
+      await deleteDoc(docRef);
+      toast({ title: "Success", description: "Transaction deleted." });
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      toast({ title: "Error", description: "Failed to delete transaction.", variant: "destructive" });
+    }
+  };
+
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle className="font-headline">Recent Transactions</CardTitle>
@@ -62,6 +112,7 @@ const RecentTransactions: FC<RecentTransactionsProps> = ({ transactions }) => {
               <TableHead>Transaction</TableHead>
               <TableHead className="hidden sm:table-cell">Date</TableHead>
               <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="w-[50px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -95,6 +146,44 @@ const RecentTransactions: FC<RecentTransactionsProps> = ({ transactions }) => {
                     {transaction.type === "income" ? "+" : "-"}
                     {formatCurrency(transaction.amount)}
                   </TableCell>
+                  <TableCell className="text-right">
+                     <AlertDialog>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">More actions</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => handleEdit(transaction)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem className="text-red-500 focus:text-red-600">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete this transaction.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(transaction.id)}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                  </TableCell>
                 </TableRow>
               );
             })}
@@ -102,6 +191,14 @@ const RecentTransactions: FC<RecentTransactionsProps> = ({ transactions }) => {
         </Table>
       </CardContent>
     </Card>
+     {selectedTransaction && (
+        <AddTransactionDialog
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          transaction={selectedTransaction}
+        />
+      )}
+    </>
   );
 };
 

@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "../auth/auth-provider";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { categoryIcons } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 
 import { Button } from "@/components/ui/button";
@@ -43,7 +42,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-
+import type { Transaction } from "@/lib/types";
 
 const formSchema = z.object({
   type: z.enum(["income", "expense"], { required_error: "Please select a transaction type." }),
@@ -56,58 +55,97 @@ const formSchema = z.object({
 const incomeCategories = ['Salary', 'Investments', 'Other'];
 const expenseCategories = ['Food', 'Transport', 'Utilities', 'Rent', 'Bills', 'Shopping', 'Entertainment', 'Other'];
 
+interface AddTransactionDialogProps {
+  transaction?: Transaction;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
 
-export default function AddTransactionDialog() {
-  const [open, setOpen] = useState(false);
+export default function AddTransactionDialog({ transaction, open, onOpenChange }: AddTransactionDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const isEditMode = !!transaction;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      type: "expense",
-      amount: 0,
-      description: "",
-      date: new Date(),
-    },
   });
   
+  useEffect(() => {
+    if (transaction) {
+      form.reset({
+        ...transaction,
+        date: transaction.date instanceof Date ? transaction.date : (transaction.date as any).toDate(),
+      });
+    } else {
+      form.reset({
+        type: "expense",
+        description: "",
+        amount: 0,
+        date: new Date(),
+        category: "",
+      });
+    }
+  }, [transaction, form]);
+
+
+  const handleOpenChange = (open: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(open);
+    } else {
+      setInternalOpen(open);
+    }
+    if (!open) {
+      form.reset();
+    }
+  };
+
+  const dialogOpen = open ?? internalOpen;
+
   const transactionType = form.watch("type");
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
-      toast({ title: "Error", description: "You must be logged in to add a transaction.", variant: "destructive" });
+      toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
       return;
     }
     
     try {
-      const transactionsRef = collection(db, `users/${user.uid}/transactions`);
-      await addDoc(transactionsRef, {
-        ...values,
-        createdAt: serverTimestamp(),
-      });
-      toast({ title: "Success", description: "Transaction added successfully." });
+      if (isEditMode && transaction) {
+        const docRef = doc(db, `users/${user.uid}/transactions`, transaction.id);
+        await updateDoc(docRef, values);
+        toast({ title: "Success", description: "Transaction updated successfully." });
+      } else {
+        const transactionsRef = collection(db, `users/${user.uid}/transactions`);
+        await addDoc(transactionsRef, {
+          ...values,
+          createdAt: serverTimestamp(),
+        });
+        toast({ title: "Success", description: "Transaction added successfully." });
+      }
       form.reset();
-      setOpen(false);
+      handleOpenChange(false);
     } catch (error) {
-      console.error("Error adding transaction:", error);
-      toast({ title: "Error", description: "Failed to add transaction.", variant: "destructive" });
+      console.error("Error saving transaction:", error);
+      toast({ title: "Error", description: "Failed to save transaction.", variant: "destructive" });
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add Transaction
-        </Button>
-      </DialogTrigger>
+    <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
+      {!isEditMode && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Transaction
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Add Transaction</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit Transaction' : 'Add Transaction'}</DialogTitle>
           <DialogDescription>
-            Add a new income or expense to your account.
+            {isEditMode ? 'Update the details of your transaction.' : 'Add a new income or expense to your account.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -124,7 +162,7 @@ export default function AddTransactionDialog() {
                         field.onChange(value);
                         form.setValue('category', ''); // Reset category on type change
                       }}
-                      defaultValue={field.value}
+                      value={field.value}
                       className="flex space-x-4"
                     >
                       <FormItem className="flex items-center space-x-2 space-y-0">
@@ -180,7 +218,7 @@ export default function AddTransactionDialog() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} defaultValue="">
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a category" />
@@ -247,7 +285,7 @@ export default function AddTransactionDialog() {
                         Cancel
                     </Button>
                 </DialogClose>
-              <Button type="submit">Add Transaction</Button>
+              <Button type="submit">{isEditMode ? 'Save Changes' : 'Add Transaction'}</Button>
             </DialogFooter>
           </form>
         </Form>
